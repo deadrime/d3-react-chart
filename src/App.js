@@ -22,6 +22,8 @@ const DATA = [
     {"price": 7233, "volume": 11.5}
 ];
 
+//console.log(DATA.map(i => i.volume).join(' '));
+
 class App extends Component {
     constructor(props) {
         super(props);
@@ -30,7 +32,7 @@ class App extends Component {
             livemod: false,
             intervalId: null,
             updateInterval: 2000
-        }
+        };
     }
     
     test() { // изменение данных
@@ -38,8 +40,9 @@ class App extends Component {
             const intervalId = setInterval(() => {
                 const NewData = DATA.map(i => {
                     let newPrice = parseInt(i.price + (Math.random() * (10 - (-10)) + (-10)));
-                    let newVolume = i.volume + (Math.random() * (10 - (-10)) + (-10));
+                    let newVolume = (i.volume + (Math.random() * (10 - (-10)) + (-10))).toFixed(2)/1;
                     newVolume = newVolume < 0 ? 0 : newVolume;
+
                     return {
                         price: newPrice,
                         volume: newVolume
@@ -68,7 +71,7 @@ class App extends Component {
         return (
             <div className="App">
                 <h1 onClick={() => this.test()}>Тыц</h1>
-                <CanvasChart data={this.state.data} size={{h: 500, w: 500}}/>
+                <CanvasChart data={this.state.data} size={{h: 600, w: 800}}/>
             </div>
         );
     }

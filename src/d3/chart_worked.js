@@ -20,6 +20,7 @@ class CanvasChart extends React.Component {
     }
 
     drawGreen() {
+        console.log((this.SortedData()));
         let data = this.SortedData();
         let canvas = this.canvas;
         let context = canvas.getContext('2d');
@@ -28,18 +29,23 @@ class CanvasChart extends React.Component {
             height = canvas.height;
 
         let x = scaleLinear()
-            .rangeRound([height / 2, 0]);
+            .rangeRound([width / 2, 0]);
 
         let y = scaleBand()
-            .rangeRound([0, width]);
+            .rangeRound([0, height]);
 
         x.domain([0, max(data, (d) => d.volume)]);
         y.domain(data.map((d) => d.price));
 
         let yWidth = y.bandwidth();
         context.fillStyle = "green";
+
+        console.log(data.map(i => i.volume).join(' '));
+        console.log(data.map(i => i.price).join(' '));
         data.forEach((d) => {
-            context.fillRect(x(d.volume), y(d.price), width / 2 - x(d.volume), yWidth);
+            //context.fillRect(x(d.volume), y(d.price), width / 2 - x(d.volume), yWidth);
+            console.log('x(volume):',x(d.volume),'| y(price):', y(d.price));
+            context.fillRect(x(d.volume), y(d.price), 5, 5);
         });
     }
 
@@ -48,15 +54,14 @@ class CanvasChart extends React.Component {
         let canvas = this.canvas;
         let context = canvas.getContext('2d');
 
-
         let width = canvas.width,
             height = canvas.height;
 
         let x = scaleLinear()
-            .rangeRound([height / 2, height]);
+            .rangeRound([width / 2, width]);
 
         let y = scaleBand()
-            .rangeRound([0, width]);
+            .rangeRound([0, height]);
 
         x.domain([0, max(data, (d) => d.volume)]);
         y.domain(data.map((d) => d.price));
@@ -69,6 +74,7 @@ class CanvasChart extends React.Component {
     }
 
     redraw(){
+        console.log(this.SortedData().map(i => i.volume).join(' '));
         this.clearCanvas();
         this.drawGreen();
         this.drawRed();
