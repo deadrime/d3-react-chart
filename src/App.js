@@ -3,7 +3,7 @@ import './App.css';
 
 //import MyChart from './d3/chart';
 
-import CanvasChart from './d3/chart_worked';
+import CanvasChart from './d3/chart';
 
 const DATA = [
     {"price": 7251, "volume": 6.7},
@@ -39,7 +39,7 @@ class App extends Component {
         if (!this.state.livemod) {
             const intervalId = setInterval(() => {
                 const NewData = DATA.map(i => {
-                    let newPrice = parseInt(i.price + (Math.random() * (10 - (-10)) + (-10)));
+                    let newPrice = parseInt(i.price + (Math.random() * (10 - (-10)) + (-10)), 10);
                     let newVolume = (i.volume + (Math.random() * (10 - (-10)) + (-10))).toFixed(2)/1;
                     newVolume = newVolume < 0 ? 0 : newVolume;
 
