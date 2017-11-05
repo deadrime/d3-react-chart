@@ -29,7 +29,7 @@ class CanvasChart extends React.Component {
         redX.domain([0, max(data, (d) => d.volume)]);
         Y.domain(data.map((d) => d.price));
 
-        let rectWidth = Y.bandwidth();
+        const rectWidth = Y.bandwidth();
 
         console.log(data.map(i => i.volume).join(' '));
         console.log(data.map(i => i.price).join(' '));
