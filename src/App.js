@@ -71,7 +71,11 @@ class App extends Component {
         return (
             <div className="App">
                 <h1 onClick={() => this.test()}>Тыц</h1>
-                <CanvasChart data={this.state.data} size={{h: 600, w: 800}}/>
+                <CanvasChart
+                    data={this.state.data}
+                    height={600}
+                    width={800}
+                />
             </div>
         );
     }

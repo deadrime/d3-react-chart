@@ -67,8 +67,8 @@ class CanvasChart extends React.Component {
     render() {
         return (
             <canvas
-                width={this.props.size.w}
-                height={this.props.size.h}
+                width={this.props.width}
+                height={this.props.height}
                 ref={(el) => {
                     this.canvas = el
                 }}
