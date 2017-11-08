@@ -40,17 +40,17 @@ class CanvasChart extends React.Component {
         return id;
     }
 
-    prepareData() {
+    prepareData(sellData, buyData) {
         this.margins = [10, 16, 10, 16];
 
         this.w = this.props.width - this.margins[1] - this.margins[3];
         this.h = this.props.height - this.margins[0] - this.margins[2];
 
-        this.sellDataX = this.sellData.map(d => d[0]);
-        this.sellDataY = this.sellData.map(d => d[1]);
+        this.sellDataX = sellData.map(d => d[0]);
+        this.sellDataY = sellData.map(d => d[1]);
 
-        this.buyDataX = this.buyData.map(d => d[0]);
-        this.buyDataY = this.buyData.map(d => d[1]);
+        this.buyDataX = buyData.map(d => d[0]);
+        this.buyDataY = buyData.map(d => d[1]);
 
         this.allXdata = concat(this.buyDataX, this.sellDataX);
         this.allYdata = concat(this.buyDataY, this.sellDataY);
@@ -75,11 +75,8 @@ class CanvasChart extends React.Component {
 
     }
 
-    drawChart() {
+    drawChart(sellData, buyData) {
         const margins = this.margins;
-        const sellData = this.sellData;
-        const buyData = this.buyData;
-
         const node = select(this.node)
             .append("g")
                     .attr("transform", "translate(" + margins[3] + "," + margins[0] + ")");
@@ -142,7 +139,7 @@ class CanvasChart extends React.Component {
             .attr("id", "mouse-tracker")
             .style("fill", "transparent");
 
-         this.mousemove = () => {
+         const mousemove = () => {
              const mouse_x = mouse(this.mouseTracker.node())[0];
              const chartPos = this.mouseTracker.node().getBoundingClientRect();
              const tooltipW = this.tooltip.offsetWidth;
@@ -197,7 +194,7 @@ class CanvasChart extends React.Component {
              }
          };
 
-         this.mouseout = () => {
+         const mouseout = () => {
              this.currentDot
                  .transition()
                  .duration(120)
@@ -220,12 +217,12 @@ class CanvasChart extends React.Component {
          };
 
          this.mouseTracker
-             .on("mousemove", this.mousemove)
-             .on("mouseout", this.mouseout)
+             .on("mousemove", mousemove)
+             .on("mouseout", mouseout)
 
     }
 
-    updateData() {
+    updateChart(sellData, buyData) {
         const node = select(this.node);
         node.select('.x-axis')
             .transition(750)
@@ -241,35 +238,31 @@ class CanvasChart extends React.Component {
 
         this.redLine
             .transition(750)
-            .attr("d", this.lineFunc(this.sellData));
+            .attr("d", this.lineFunc(sellData));
 
         this.greenLine
             .transition(750)
-            .attr("d", this.lineFunc(this.buyData));
+            .attr("d", this.lineFunc(buyData));
 
         this.redArea
-            .data([this.sellData])
+            .data([sellData])
             .transition(750)
             .attr("d", this.areaFunc);
 
         this.greenArea
-            .data([this.buyData])
+            .data([buyData])
             .transition(750)
             .attr("d", this.areaFunc)
     }
 
     componentDidMount() {
-        this.sellData = this.props.sellData;
-        this.buyData = this.props.buyData;
-        this.prepareData();
-        this.drawChart();
+        this.prepareData(this.props.sellData, this.props.buyData);
+        this.drawChart(this.props.sellData, this.props.buyData);
     }
 
     componentDidUpdate(){
-        this.sellData = this.props.sellData;
-        this.buyData = this.props.buyData;
-        this.prepareData();
-        this.updateData();
+        this.prepareData(this.props.sellData, this.props.buyData);
+        this.updateChart(this.props.sellData, this.props.buyData);
     }
 
     render() {
