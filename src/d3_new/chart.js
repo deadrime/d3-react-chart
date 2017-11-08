@@ -220,7 +220,6 @@ class CanvasChart extends React.Component {
     redraw() {
         const sellData = [[7400, 0.05], [7700, 0.26], [7800, 0.61], [7900, 0.76], [9999, 0.79]];
         const buyData = [[3700, 2.99], [5500, 2.78], [6100, 2.5], [6400, 2.04], [6500,0.62],[7000, 0.09]];
-        this.clearCanvas();
         this.drawChart(sellData, buyData);
     }
 
