@@ -25,14 +25,6 @@ class CanvasChart extends React.Component {
         }
     }
 
-    clearCanvas() {
-
-    }
-
-    static defaultProps = {
-        margins: [40,40,40,40]
-    };
-
     getClosest(num, arr) {
         let curr = arr[0];
         let diff = Math.abs (num - curr);
