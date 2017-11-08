@@ -1,0 +1,49 @@
+#tooltip {
+    position: absolute;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: rgb(255, 255, 255);
+    border-radius: 2px;
+    pointer-events:none
+}
+#tooltip.red {
+    background: rgba(110, 0, 0, 0.7)
+}
+
+#tooltip.red::before {
+    border-bottom-color: rgba(110, 0, 0, 0.7)
+}
+
+#tooltip.green {
+    background: rgba(0, 110, 0, 0.7);
+}
+
+#tooltip.green::before {
+    border-bottom-color: rgba(0, 110, 0, 0.7)
+}
+
+#tooltip::before {
+    top: -8px;
+    left: calc(50% - 8px);
+    position: absolute;
+    content: '';
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 8px 8px 8px;
+    border-color: transparent transparent rgba(0, 0, 0, 0.7) transparent;
+}
+
+.dot {
+    stroke: #fff;
+    stroke-width: 2;
+}
+
+.dot.red {
+    fill: red;
+}
+
+.dot.green {
+    fill: green;
+    box-shadow: 0 0 0 10px #000;
+}

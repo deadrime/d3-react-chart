@@ -1,0 +1,178 @@
+<html>
+	<head>
+		<title>Line Graph with Dual-scaled Axes using SVG and d3.js</title>
+		<script src="https://d3js.org/d3.v4.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
+	</head>
+	<body>
+	<div id="graph" class="aGraph" style="position:absolute;top:0px;left:0; float:left;">
+	</div>
+
+	<script>
+		// отступы и размеры
+		const m = [80, 80, 80, 80];
+        const w = 1200 - m[1] - m[3];
+        const h = 600 - m[0] - m[2];
+		
+		// данные
+        const sellData = [[7400, 0.05], [7700, 0.26], [7800, 0.61], [7900, 0.76], [9999, 0.79]];
+        const buyData = [[3700, 2.99], [5500, 2.78], [6100, 2.5], [6400, 2.04], [6500,0.62],[7000, 0.09]];
+
+        const sellDataX = sellData.map(d => d[0]);
+        const sellDataY = sellData.map(d => d[1]);
+
+        const buyDataX = buyData.map(d => d[0]);
+        const buyDataY = buyData.map(d => d[1]);
+        
+		// функции для вычисления позиции точек x y
+		const x = d3.scaleLinear().domain([d3.min(buyDataX), d3.max(sellDataX)]).range([0, w]);
+		const y = d3.scaleLinear().domain([0, d3.max(buyDataY)]).range([h, 0]); 
+
+		// функция создания линии
+		const line = d3.line()
+			.x((d) => x(d[0]))
+			.y((d) => y(d[1]));
+		
+		// функция создания области
+		const area = d3.area()
+			.x((d) => x(d[0]))
+			.y0(h)
+			.y1((d) => y(d[1]));
+
+		// создание основного svg
+        let graph = d3.select("#graph").append("svg")
+			.attr("width", w + m[1] + m[3])
+			.attr("height", h + m[0] + m[2])
+			.append("g")
+				.attr("transform", "translate(" + m[3] + "," + m[0] + ")");
+		
+		// надписи и направляющие по oX
+		const xAxis = d3.axisBottom().scale(x).tickSize(-h);
+
+        graph.append("g")
+			.attr("transform", "translate(0," + h + ")")
+			.call(xAxis)
+			.style('shape-rendering', 'crispEdges')
+			.selectAll(".tick line").attr("stroke", "lightgrey");
+
+		// надписи и направляющие по oY
+		const yAxisLeft = d3.axisLeft().scale(y).tickSize(-w);
+		graph.append("g")
+				.call(yAxisLeft)
+				.style('shape-rendering', 'crispEdges')
+				.selectAll(".tick:not(:first-of-type) line").attr("stroke", "lightgrey");
+
+		// красная линия
+		graph.append("path")
+			.attr("d", line(sellData))
+			.attr("stroke", "red")
+			.style("stroke-width", 1)
+			.style("fill", "none");
+
+		// зеленая линия
+		graph.append("path")
+			.attr("d", line(buyData))
+			.attr("stroke", "green")
+			.style("stroke-width", 1)
+			.style("fill", "none");
+
+		// красная область
+		graph.append("path")
+			.data([sellData])
+			.attr("d", area)
+			.style("fill", "rgba(255, 40, 40, 0.5)");
+
+		// зеленая область
+		graph.append("path")
+			.data([buyData])
+			.attr("d", area)
+			.style("fill", "rgba(40, 255, 87, 0.5)");
+
+		// текущая точка
+        graph.append("circle")
+            .attr("class", "dot")
+            .attr("cx", -9999)
+            .attr("cy", -9999)
+            .attr("r", 4)
+            .attr("id", "current-dot");
+
+        //подзказка
+        d3.select("#graph").append("div")
+			.attr('id', 'tooltip')
+			.style('position', 'absolute')
+			.style('padding','5px')
+			.style('background','rgba(0,0,0,.7)')
+			.style('color', '#fff')
+			.style('border-radius','2px')
+			.html(`
+				<p><span id="tooltip_price"></span></p>
+				<p><span id="tooltip_value"></span></p>
+			`).
+			selectAll('p').style('margin','0')
+		;
+
+        // невидимая область для отслеживания позиции мыши
+		graph.append("rect")
+			.attr("width", w)
+			.attr("height", h)                                    
+			.attr("x", 0) 
+			.attr("y", 0)
+			.attr("id", "mouse-tracker")
+			.style("fill", "transparent");
+
+		const allXdata = _.concat(buyDataX, sellDataX);
+        const allYdata = _.concat(buyDataY, sellDataY);
+
+        function getClosest(num, arr) {
+            let curr = arr[0];
+            let diff = Math.abs (num - curr);
+            let id = 0;
+            for (let val = 0; val < arr.length; val++) {
+                const newdiff = Math.abs (num - arr[val]);
+                if (newdiff < diff) {
+                    diff = newdiff;
+                    curr = arr[val];
+                    id = val;
+                }
+            }
+            return id;
+        }
+
+		function mousemove() {
+			const mouse_x = d3.mouse(this)[0];
+			const graph_x = x.invert(mouse_x);
+			const nearestID = getClosest(graph_x, allXdata);
+			const dotData = [allXdata[nearestID], allYdata[nearestID]];
+
+            graph.select("#current-dot")
+                .attr("cx", x(dotData[0]))
+                .attr("cy", y(dotData[1]));
+
+            const tooltipW = d3.select("#tooltip").node().offsetWidth;
+
+            d3.select("#tooltip")
+                .style("left", x(dotData[0]) + (m[1] + m[3])/2 - tooltipW/2  + "px")
+                .style("top", y(dotData[1]) + (m[0]+ m[2])/2 + 10 + "px")
+                .select("#tooltip_price")
+                	.text(`Price ${dotData[0]} USDT`);
+
+            d3.select("#tooltip")
+				.select("#tooltip_value")
+					.text(`Buy orders: ${dotData[1]}`);
+        }
+		
+		function mouseout() {
+            graph.select("#current-dot")
+                .attr("cx", -9999)
+                .attr("cy", -9999)
+		}
+
+		d3.select("#mouse-tracker")
+			.on("mousemove", mousemove);
+
+        d3.select("#graph")
+            .on("mouseout", mouseout)
+
+	</script>
+	</body>
+</html>
