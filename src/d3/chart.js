@@ -2,6 +2,7 @@ import React from "react";
 import {scaleLinear} from "d3-scale";
 import {max, min} from "d3-array";
 import {select, append, mouse, event} from 'd3-selection'
+import 'd3-selection/src/sourceEvent'
 import {axisLeft, axisBottom} from 'd3-axis';
 import {transition} from 'd3-transition';
 import {brushX} from 'd3-brush'
@@ -153,16 +154,6 @@ class CanvasChart extends React.Component {
         const brushended = () => {
             const s = event.selection;
             console.log(s);
-
-            zoom();
-        };
-
-        const zoom = () => {
-            // тут должен быть ресайз
-        };
-
-        const idled = () => {
-            idleTimeout = null;
         };
 
         let mybrush = brushX().on("end", brushended),
@@ -174,7 +165,7 @@ class CanvasChart extends React.Component {
             .attr("class", "brush")
             .call(mybrush);
 
-        // функция для
+        // функция для показа подсказки и координат текущей точки
         const mousemove = () => {
             const mouse_x = mouse(this.mouseTracker.node())[0];
             const chartPos = this.mouseTracker.node().getBoundingClientRect();
@@ -182,6 +173,8 @@ class CanvasChart extends React.Component {
             const graph_x = this.x.invert(mouse_x);
             const nearestID = this.getClosest(graph_x, this.allXdata);
             const dotData = [this.allXdata[nearestID], this.allYdata[nearestID]];
+
+            // меняю координаты текущей точки
             this.currentDot
                 .attr("cx", this.x(dotData[0]))
                 .attr("cy", this.y(dotData[1]))
@@ -193,7 +186,7 @@ class CanvasChart extends React.Component {
                 .transition()
                 .duration(100)
                 .style('opacity', 1);
-
+            
             this.setState({
                 currentPrice: this.allXdata[nearestID],
                 currentValue: this.allYdata[nearestID],
@@ -201,6 +194,7 @@ class CanvasChart extends React.Component {
                 tooltipY: this.y(dotData[1]) + (this.margin.top + this.margin.bottom) / 2 + 14
             });
 
+            // косметичесская хрень
             if (this.sellDataX.includes(this.state.currentPrice)) {
                 this.tooltip.classList.add('red');
                 this.tooltip.classList.remove('green');
@@ -252,9 +246,15 @@ class CanvasChart extends React.Component {
                 .attr('stroke-width', 1)
         };
 
+        const test = () => {
+            console.log(this.mouseTracker.node());
+            console.log(mouse(this.mouseTracker.node())); // пытаюсь получить текущее положение курсора
+        };
+
         this.mouseTracker
             .on("mousemove", mousemove)
-            .on("mouseout", mouseout);
+            .on("mouseout", mouseout)
+            .on("updateData", test)
     }
 
     updateChart(sellData, buyData) {
@@ -288,7 +288,9 @@ class CanvasChart extends React.Component {
         this.greenArea
             .data([buyData])
             .transition(750)
-            .attr("d", this.areaFunc)
+            .attr("d", this.areaFunc);
+
+        this.mouseTracker.dispatch("updateData"); // триггерю событие
     }
 
     componentDidMount() {
