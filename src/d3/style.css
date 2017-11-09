@@ -10,6 +10,10 @@
     background: rgba(110, 0, 0, 0.7)
 }
 
+.domain {
+    stroke: none;
+}
+
 #tooltip.red::before {
     border-bottom-color: rgba(110, 0, 0, 0.7)
 }

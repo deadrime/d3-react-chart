@@ -18,6 +18,28 @@ class App extends Component {
         };
     }
 
+    componentDidMount() {
+        const getRandomData = (min, max) => {
+            return Math.random() * (max - min) + min;
+        };
+
+
+        setInterval(() => {
+            const sortByPrice = (a,b) => {
+              return a[0] < b[0] ? -1 : 1
+            };
+
+            let newSellData = this.state.sellData.map(d=>[d[0] - getRandomData(-100,100),d[1]]).sort(sortByPrice);
+            let newBuyData = this.state.buyData.map(d=>[d[0] - getRandomData(-100,100),d[1]]).sort(sortByPrice);
+
+
+            this.setState({
+                sellData: newSellData,
+                buyData: newBuyData
+            });
+        }, 3000)
+    }
+
     render() {
         return (
             <div className="App">

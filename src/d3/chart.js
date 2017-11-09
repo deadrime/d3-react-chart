@@ -1,15 +1,16 @@
 import React from "react";
-import { scaleLinear } from "d3-scale";
-import { max , min } from "d3-array";
-import { select, append, mouse } from 'd3-selection'
-import { axisLeft, axisBottom } from 'd3-axis';
-import { transition } from 'd3-transition';
+import {scaleLinear} from "d3-scale";
+import {max, min} from "d3-array";
+import {select, append, mouse, event} from 'd3-selection'
+import {axisLeft, axisBottom} from 'd3-axis';
+import {transition} from 'd3-transition';
+import {brushX} from 'd3-brush'
 
 import concat from 'lodash/concat';
 // import forEach from 'lodash/forEach';
 // import sortBy from 'lodash/sortBy';
 
-import { line, area }  from 'd3-shape';
+import {line, area} from 'd3-shape';
 
 import './style.css'
 
@@ -21,16 +22,20 @@ class CanvasChart extends React.Component {
             currentPrice: 0,
             currentValue: 0,
             tooltipX: -999,
-            tooltipY: -999
-        }
+            tooltipY: -999,
+            showBuy: true,
+            showSell: true,
+        };
+        this.toggleBuy = this.toggleBuy.bind(this);
+        this.toggleSell = this.toggleSell.bind(this);
     }
 
     getClosest(num, arr) {
         let curr = arr[0];
-        let diff = Math.abs (num - curr);
+        let diff = Math.abs(num - curr);
         let id = 0;
         for (let val = 0; val < arr.length; val++) {
-            const newdiff = Math.abs (num - arr[val]);
+            const newdiff = Math.abs(num - arr[val]);
             if (newdiff < diff) {
                 diff = newdiff;
                 curr = arr[val];
@@ -41,10 +46,13 @@ class CanvasChart extends React.Component {
     }
 
     prepareData(sellData, buyData) {
-        this.margins = [10, 16, 10, 16];
+        buyData = this.state.showBuy ? buyData : [];
+        sellData = this.state.showSell ? sellData : [];
 
-        this.w = this.props.width - this.margins[1] - this.margins[3];
-        this.h = this.props.height - this.margins[0] - this.margins[2];
+        this.margin = {top: 20, right: 20, bottom: 30, left: 50};
+
+        this.w = this.props.width - this.margin.left - this.margin.right;
+        this.h = this.props.height - this.margin.top - this.margin.bottom;
 
         this.sellDataX = sellData.map(d => d[0]);
         this.sellDataY = sellData.map(d => d[1]);
@@ -56,9 +64,9 @@ class CanvasChart extends React.Component {
         this.allYdata = concat(this.buyDataY, this.sellDataY);
 
         console.log(this.sellDataX);
-
+        const maxY = Math.round(max(this.allYdata)*2)/2;
         this.x = scaleLinear().domain([min(this.allXdata), max(this.allXdata)]).range([0, this.w]);
-        this.y = scaleLinear().domain([0, max(this.allYdata)]).range([this.h, 0]);
+        this.y = scaleLinear().domain([0, maxY]).range([this.h, 0]);
 
         this.lineFunc = line()
             .x((d) => this.x(d[0]))
@@ -76,11 +84,17 @@ class CanvasChart extends React.Component {
     }
 
     drawChart(sellData, buyData) {
-        const margins = this.margins;
+        select(this.node).append("defs").append("clipPath")
+            .attr("id", "clip")
+            .append("rect")
+            .attr("width", this.w)
+            .attr("height", this.h);
+
         const node = select(this.node)
             .append("g")
-                    .attr("transform", "translate(" + margins[3] + "," + margins[0] + ")");
+            .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
+        // надписи и направляющие по oX
         node.append("g")
             .attr('class', 'x-axis')
             .attr("transform", "translate(0," + this.h + ")")
@@ -91,150 +105,172 @@ class CanvasChart extends React.Component {
         // надписи и направляющие по oY
         node.append("g")
             .call(this.yAxis)
-            .attr('class','y-axis')
+            .attr('class', 'y-axis')
             .style('shape-rendering', 'crispEdges')
-            .selectAll(".tick:not(:first-of-type) line").attr("stroke", "lightgrey");
+            .selectAll(".tick line").attr("stroke", "lightgrey");
+
+        // штука, внутри которой будет все элементы графика
+        this.chart = node.append("g")
+            .attr('class', 'chart-area')
+            .style("clip-path", "url(#clip)");
 
         // красная линия
-        this.redLine = node.append("path")
+        this.redLine = this.chart.append("path")
             .attr("id", "redline")
             .attr("d", this.lineFunc(sellData))
-            .attr("stroke", "red")
+            .attr("stroke", "rgba(179, 29, 29, 0.8)")
             .attr("stroke-width", 1)
             .style("fill", "none");
 
         // зеленая линия
-        this.greenLine = node.append("path")
+        this.greenLine = this.chart.append("path")
             .attr("d", this.lineFunc(buyData))
-            .attr("stroke", "green")
+            .attr("stroke", "rgba(76, 175, 80, 0.8)")
             .attr("stroke-width", 1)
             .style("fill", "none");
 
         // красная область
-        this.redArea = node.append("path")
-           .data([sellData])
-           .attr("d", this.areaFunc)
-           .style("fill", "rgba(255, 40, 40, 0.5)");
+        this.redArea = this.chart.append("path")
+            .data([sellData])
+            .attr("d", this.areaFunc)
+            .style("fill", "rgba(255, 40, 40, 0.5)");
 
         // зеленая область
-        this.greenArea = node.append("path")
-           .data([buyData])
-           .attr("d", this.areaFunc)
-           .style("fill", "rgba(40, 255, 87, 0.5)");
+        this.greenArea = this.chart.append("path")
+            .data([buyData])
+            .attr("d", this.areaFunc)
+            .style("fill", "rgba(40, 255, 87, 0.5)");
 
         // текущая точка
-        this.currentDot = node.append("circle")
+        this.currentDot = this.chart.append("circle")
             .attr("class", "dot")
             .attr("cx", -999)
             .attr("cy", -999)
             .attr("r", 0)
             .attr("id", "current-dot");
 
-         // невидимая область для отслеживания позиции мыши
-        this.mouseTracker = node.append("rect")
-            .attr("width", this.w)
-            .attr("height", this.h)
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("id", "mouse-tracker")
-            .style("fill", "transparent");
+        // тут можно получить значения выделенной области
+        const brushended = () => {
+            const s = event.selection;
+            console.log(s);
 
-         const mousemove = () => {
-             const mouse_x = mouse(this.mouseTracker.node())[0];
-             const chartPos = this.mouseTracker.node().getBoundingClientRect();
-             const tooltipW = this.tooltip.offsetWidth;
-             const graph_x = this.x.invert(mouse_x);
-             const nearestID = this.getClosest(graph_x, this.allXdata);
-             const dotData = [this.allXdata[nearestID], this.allYdata[nearestID]];
-             this.currentDot
-                 .attr("cx", this.x(dotData[0]))
-                 .attr("cy", this.y(dotData[1]))
-                 .transition()
-                 .duration(120)
-                 .attr("r", 4);
+            zoom();
+        };
 
-             select(this.tooltip)
-                 .transition()
-                 .duration(100)
-                 .style('opacity', 1);
+        const zoom = () => {
+            // тут должен быть ресайз
+        };
 
-             this.setState({
-                 currentPrice: this.allXdata[nearestID],
-                 currentValue: this.allYdata[nearestID],
-                 tooltipX: this.x(dotData[0]) + chartPos.x - tooltipW/2 ,
-                 tooltipY: this.y(dotData[1]) + (margins[0]+ margins[2])/2 + 14
-             });
+        const idled = () => {
+            idleTimeout = null;
+        };
 
-             if (this.sellDataX.includes(this.state.currentPrice)) {
-                 this.tooltip.classList.add('red');
-                 this.tooltip.classList.remove('green');
-                 this.currentDot
-                     .attr("class", "dot red");
-                 this.greenLine
-                     .transition()
-                     .duration(120)
-                     .attr('stroke-width', 1);
-                 this.redLine
-                     .transition()
-                     .duration(120)
-                     .attr('stroke-width', 2)
-             }else {
-                 this.currentDot
-                     .attr("class", "dot green");
-                 this.tooltip.classList.add('green');
-                 this.tooltip.classList.remove('red');
-                 this.greenLine
-                     .transition()
-                     .duration(120)
-                     .attr('stroke-width', 2);
-                 this.redLine
-                     .transition()
-                     .duration(120)
-                     .attr('stroke-width', 1)
-             }
-         };
+        let mybrush = brushX().on("end", brushended),
+            idleTimeout,
+            idleDelay = 350;
 
-         const mouseout = () => {
-             this.currentDot
-                 .transition()
-                 .duration(120)
-                 .attr("r", 0);
+        // область для зума и отслеживания перемещения мыши
+        this.mouseTracker = this.chart.append("g")
+            .attr("class", "brush")
+            .call(mybrush);
 
-             select(this.tooltip)
-                 .transition()
-                 .duration(120)
-                 .style('opacity',0);
+        // функция для
+        const mousemove = () => {
+            const mouse_x = mouse(this.mouseTracker.node())[0];
+            const chartPos = this.mouseTracker.node().getBoundingClientRect();
+            const tooltipW = this.tooltip.offsetWidth;
+            const graph_x = this.x.invert(mouse_x);
+            const nearestID = this.getClosest(graph_x, this.allXdata);
+            const dotData = [this.allXdata[nearestID], this.allYdata[nearestID]];
+            this.currentDot
+                .attr("cx", this.x(dotData[0]))
+                .attr("cy", this.y(dotData[1]))
+                .transition()
+                .duration(120)
+                .attr("r", 4);
 
-             this.greenLine
-                 .transition()
-                 .duration(120)
-                 .attr('stroke-width', 1);
+            select(this.tooltip)
+                .transition()
+                .duration(100)
+                .style('opacity', 1);
 
-             this.redLine
-                 .transition()
-                 .duration(120)
-                 .attr('stroke-width', 1)
-         };
+            this.setState({
+                currentPrice: this.allXdata[nearestID],
+                currentValue: this.allYdata[nearestID],
+                tooltipX: this.x(dotData[0]) + chartPos.x - tooltipW / 2,
+                tooltipY: this.y(dotData[1]) + (this.margin.top + this.margin.bottom) / 2 + 14
+            });
 
-         this.mouseTracker
-             .on("mousemove", mousemove)
-             .on("mouseout", mouseout)
+            if (this.sellDataX.includes(this.state.currentPrice)) {
+                this.tooltip.classList.add('red');
+                this.tooltip.classList.remove('green');
+                this.currentDot
+                    .attr("class", "dot red");
+                this.greenLine
+                    .transition()
+                    .duration(120)
+                    .attr('stroke-width', 1);
+                this.redLine
+                    .transition()
+                    .duration(120)
+                    .attr('stroke-width', 2)
+            } else {
+                this.currentDot
+                    .attr("class", "dot green");
+                this.tooltip.classList.add('green');
+                this.tooltip.classList.remove('red');
+                this.greenLine
+                    .transition()
+                    .duration(120)
+                    .attr('stroke-width', 2);
+                this.redLine
+                    .transition()
+                    .duration(120)
+                    .attr('stroke-width', 1)
+            }
+        };
 
+        const mouseout = () => {
+            this.currentDot
+                .transition()
+                .duration(120)
+                .attr("r", 0);
+
+            select(this.tooltip)
+                .transition()
+                .duration(120)
+                .style('opacity', 0);
+
+            this.greenLine
+                .transition()
+                .duration(120)
+                .attr('stroke-width', 1);
+
+            this.redLine
+                .transition()
+                .duration(120)
+                .attr('stroke-width', 1)
+        };
+
+        this.mouseTracker
+            .on("mousemove", mousemove)
+            .on("mouseout", mouseout);
     }
 
     updateChart(sellData, buyData) {
         const node = select(this.node);
+        // ресайзинг oX
         node.select('.x-axis')
             .transition(750)
             .call(this.xAxis)
             .style('shape-rendering', 'crispEdges')
             .selectAll(".tick line").attr("stroke", "lightgrey");
-
+        // ресайзинг oY
         node.select('.y-axis')
             .transition(750)
             .call(this.yAxis)
             .style('shape-rendering', 'crispEdges')
-            .selectAll(".tick line").attr("stroke", "lightgrey");
+            .selectAll(".tick:not(:first-of-type) line").attr("stroke", "lightgrey");
 
         this.redLine
             .transition(750)
@@ -260,9 +296,21 @@ class CanvasChart extends React.Component {
         this.drawChart(this.props.sellData, this.props.buyData);
     }
 
-    componentDidUpdate(){
+    componentDidUpdate() {
         this.prepareData(this.props.sellData, this.props.buyData);
         this.updateChart(this.props.sellData, this.props.buyData);
+    }
+
+    toggleBuy() {
+        this.setState({
+            showBuy: !this.state.showBuy
+        })
+    }
+
+    toggleSell() {
+        this.setState({
+            showSell: !this.state.showSell
+        })
     }
 
     render() {
@@ -282,6 +330,10 @@ class CanvasChart extends React.Component {
                         this.node = el
                     }}>
                 </svg>
+                <div>
+                    <button onClick={this.toggleBuy}>Переключить buy</button>
+                    <button onClick={this.toggleSell}>Переключить sell</button>
+                </div>
             </div>);
     }
 }
