@@ -383,7 +383,7 @@ class CanvasChart extends React.Component {
                 }}>
                     <p>Price: <span>{this.state.currentPrice}</span> USDT</p>
                     <p>Buy orders: <span>{this.state.currentValue}</span></p>
-                </div>`
+                </div>
                 <svg
                     width={this.props.width}
                     height={this.props.height}
