@@ -12,9 +12,6 @@ class App extends Component {
         this.state = {
             sellData: sellData,
             buyData: buyData
-            // livemod: false,
-            // intervalId: null,
-            // updateInterval: 2000
         };
     }
 
@@ -43,6 +40,7 @@ class App extends Component {
     render() {
         return (
             <div className="App">
+                <h1>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ab adipisci aliquam deserunt, fuga hic ipsa modi nam optio placeat quaerat recusandae tempora unde vel! Delectus dolor facere ipsa non voluptatibus?</h1>
                 <CanvasChart
                     sellData = {this.state.sellData}
                     buyData = {this.state.buyData}

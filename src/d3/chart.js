@@ -8,8 +8,6 @@ import {transition} from 'd3-transition';
 import {brushX} from 'd3-brush'
 
 import concat from 'lodash/concat';
-// import forEach from 'lodash/forEach';
-// import sortBy from 'lodash/sortBy';
 
 import {line, area} from 'd3-shape';
 
@@ -246,15 +244,9 @@ class CanvasChart extends React.Component {
                 .attr('stroke-width', 1)
         };
 
-        const test = () => {
-            console.log(this.mouseTracker.node());
-            console.log(mouse(this.mouseTracker.node())); // пытаюсь получить текущее положение курсора
-        };
-
         this.mouseTracker
             .on("mousemove", mousemove)
             .on("mouseout", mouseout)
-            .on("updateData", test)
     }
 
     updateChart(sellData, buyData) {
@@ -289,8 +281,6 @@ class CanvasChart extends React.Component {
             .data([buyData])
             .transition(750)
             .attr("d", this.areaFunc);
-
-        this.mouseTracker.dispatch("updateData"); // триггерю событие
     }
 
     componentDidMount() {
@@ -317,8 +307,8 @@ class CanvasChart extends React.Component {
 
     render() {
         return (
-            <div id="chart">
-                <div id="tooltip" ref={(el) => this.tooltip = el} style={{
+            <div id="chart" style={{position: 'relative'}}>
+                <div id="tooltip"ref={(el) => this.tooltip = el} style={{
                     left: this.state.tooltipX,
                     top: this.state.tooltipY
                 }}>
@@ -332,10 +322,6 @@ class CanvasChart extends React.Component {
                         this.node = el
                     }}>
                 </svg>
-                <div>
-                    <button onClick={this.toggleBuy}>Переключить buy</button>
-                    <button onClick={this.toggleSell}>Переключить sell</button>
-                </div>
             </div>);
     }
 }
