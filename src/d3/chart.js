@@ -1,17 +1,94 @@
 import React from "react";
 import {scaleLinear} from "d3-scale";
 import {max, min} from "d3-array";
-import {select, append, mouse, event} from 'd3-selection'
-import 'd3-selection/src/sourceEvent'
+import {select, append, mouse, event} from 'd3-selection';
+import 'd3-selection/src/sourceEvent';
 import {axisLeft, axisBottom} from 'd3-axis';
 import {transition} from 'd3-transition';
-import {brushX} from 'd3-brush'
-
+import {brushX} from 'd3-brush';
+import { css } from 'glamor';
 import concat from 'lodash/concat';
-
 import {line, area} from 'd3-shape';
 
-import './style.css'
+/*
+Стили
+ */
+
+const ChartStyle = css({
+    'position': 'relative',
+    '& .domain': {
+        'stroke': 'none'
+    }
+});
+
+const dotStyle = css({
+    'stroke': '#fff',
+    'strokeWidth': '2',
+    '&.red': {
+        'fill': 'red'
+    },
+    '&.green' : {
+        'fill': 'green'
+    }
+});
+
+const tooltipStyle = css({
+    "position": "absolute",
+    "padding": "5px",
+    "background": "rgba(0, 0, 0, 0.7)",
+    "color": "rgb(255, 255, 255)",
+    "borderRadius": "2px",
+    "pointerEvents": "none",
+    "&.red": {
+        "background": "rgba(110, 0, 0, 0.7)",
+        '&::before': {
+            "borderBottomColor": "rgba(110, 0, 0, 0.7)"
+        }
+    },
+    "&.green": {
+        "background": "rgba(0, 110, 0, 0.7)",
+        '&::before': {
+            "borderBottomColor": "rgba(0, 110, 0, 0.7)"
+        }
+    },
+    "&::before": {
+        "top": "-8px",
+        "left": "calc(50% - 8px)",
+        "position": "absolute",
+        "content": "''",
+        "width": "0",
+        "height": "0",
+        "borderStyle": "solid",
+        "borderWidth": "0 8px 8px 8px",
+        "borderColor": "transparent transparent rgba(0, 0, 0, 0.7) transparent"
+    }
+});
+
+const greenLineStyle = css({
+    "stroke": "rgba(76, 175, 80, 0.8)",
+    "fill": "none"
+});
+
+const redLineStyle = css({
+    "stroke": "rgba(179, 29, 29, 0.8)",
+    "fill": "none"
+});
+
+const redAreaStyle = css({
+    "fill": "rgba(255, 40, 40, 0.5)"
+});
+
+const greenAreaStyle = css({
+    "fill": "rgba(40, 255, 87, 0.5)"
+});
+
+const axisStyle = css({
+    'shapeRendering': 'crispEdges',
+    "& .tick line": {
+        "stroke":"lightgrey"
+    }
+});
+
 
 class CanvasChart extends React.Component {
     constructor(props) {
@@ -62,7 +139,7 @@ class CanvasChart extends React.Component {
         this.allXdata = concat(this.buyDataX, this.sellDataX);
         this.allYdata = concat(this.buyDataY, this.sellDataY);
 
-        console.log(this.sellDataX);
+        //console.log(this.sellDataX);
         const maxY = Math.round(max(this.allYdata)*2)/2;
         this.x = scaleLinear().domain([min(this.allXdata), max(this.allXdata)]).range([0, this.w]);
         this.y = scaleLinear().domain([0, maxY]).range([this.h, 0]);
@@ -77,8 +154,8 @@ class CanvasChart extends React.Component {
             .y0(this.h)
             .y1((d) => this.y(d[1]));
 
-        this.xAxis = axisBottom().scale(this.x).tickSize(-this.h);
-        this.yAxis = axisLeft().scale(this.y).tickSize(-this.w);
+        this.xAxisFunc = axisBottom().scale(this.x).tickSize(-this.h);
+        this.yAxisFunc = axisLeft().scale(this.y).tickSize(-this.w);
 
     }
 
@@ -94,19 +171,15 @@ class CanvasChart extends React.Component {
             .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
         // надписи и направляющие по oX
-        node.append("g")
-            .attr('class', 'x-axis')
+        this.xAxisNode = node.append("g")
+            .attr('class', `${axisStyle}`)
             .attr("transform", "translate(0," + this.h + ")")
-            .call(this.xAxis)
-            .style('shape-rendering', 'crispEdges')
-            .selectAll(".tick line").attr("stroke", "lightgrey");
+            .call(this.xAxisFunc);
 
         // надписи и направляющие по oY
-        node.append("g")
-            .call(this.yAxis)
-            .attr('class', 'y-axis')
-            .style('shape-rendering', 'crispEdges')
-            .selectAll(".tick line").attr("stroke", "lightgrey");
+        this.yAxisNode = node.append("g")
+            .call(this.yAxisFunc)
+            .attr('class', `${axisStyle}`);
 
         // штука, внутри которой будет все элементы графика
         this.chart = node.append("g")
@@ -115,34 +188,32 @@ class CanvasChart extends React.Component {
 
         // красная линия
         this.redLine = this.chart.append("path")
-            .attr("id", "redline")
             .attr("d", this.lineFunc(sellData))
-            .attr("stroke", "rgba(179, 29, 29, 0.8)")
-            .attr("stroke-width", 1)
-            .style("fill", "none");
+            .attr("class", `${redLineStyle}`)
+            .attr("stroke-width", 1);
 
         // зеленая линия
         this.greenLine = this.chart.append("path")
             .attr("d", this.lineFunc(buyData))
-            .attr("stroke", "rgba(76, 175, 80, 0.8)")
-            .attr("stroke-width", 1)
-            .style("fill", "none");
+            .attr("class", `${greenLineStyle}`)
+            .attr("stroke-width", 1);
 
         // красная область
         this.redArea = this.chart.append("path")
             .data([sellData])
             .attr("d", this.areaFunc)
-            .style("fill", "rgba(255, 40, 40, 0.5)");
+            .attr("class", `${redAreaStyle}`);
+            //.style("fill", "rgba(255, 40, 40, 0.5)");
 
         // зеленая область
         this.greenArea = this.chart.append("path")
             .data([buyData])
             .attr("d", this.areaFunc)
-            .style("fill", "rgba(40, 255, 87, 0.5)");
+            .attr("class", `${greenAreaStyle}`);
 
-        // текущая точка
+
         this.currentDot = this.chart.append("circle")
-            .attr("class", "dot")
+            .attr("class", `${dotStyle}`)
             .attr("cx", -999)
             .attr("cy", -999)
             .attr("r", 0)
@@ -197,7 +268,8 @@ class CanvasChart extends React.Component {
                 this.tooltip.classList.add('red');
                 this.tooltip.classList.remove('green');
                 this.currentDot
-                    .attr("class", "dot red");
+                    .classed("red", true)
+                    .classed("green", false);
                 this.greenLine
                     .transition()
                     .duration(120)
@@ -208,7 +280,8 @@ class CanvasChart extends React.Component {
                     .attr('stroke-width', 2)
             } else {
                 this.currentDot
-                    .attr("class", "dot green");
+                    .classed("red", false)
+                    .classed("green", true);
                 this.tooltip.classList.add('green');
                 this.tooltip.classList.remove('red');
                 this.greenLine
@@ -250,19 +323,15 @@ class CanvasChart extends React.Component {
     }
 
     updateChart(sellData, buyData) {
-        const node = select(this.node);
         // ресайзинг oX
-        node.select('.x-axis')
+        this.xAxisNode
             .transition(750)
-            .call(this.xAxis)
-            .style('shape-rendering', 'crispEdges')
-            .selectAll(".tick line").attr("stroke", "lightgrey");
+            .call(this.xAxisFunc);
+
         // ресайзинг oY
-        node.select('.y-axis')
+        this.yAxisNode
             .transition(750)
-            .call(this.yAxis)
-            .style('shape-rendering', 'crispEdges')
-            .selectAll(".tick:not(:first-of-type) line").attr("stroke", "lightgrey");
+            .call(this.yAxisFunc);
 
         this.redLine
             .transition(750)
@@ -307,14 +376,14 @@ class CanvasChart extends React.Component {
 
     render() {
         return (
-            <div id="chart" style={{position: 'relative'}}>
-                <div id="tooltip"ref={(el) => this.tooltip = el} style={{
+            <div id="chart" className={`${ChartStyle}`} >
+                <div ref={(el) => this.tooltip = el} className={`${tooltipStyle}`} style={{
                     left: this.state.tooltipX,
                     top: this.state.tooltipY
                 }}>
-                    <p className="tooltip-text">Price: <span id="tooltip_price">{this.state.currentPrice}</span> USDT</p>
-                    <p className="tooltip-text">Buy orders: <span id="tooltip_price">{this.state.currentValue}</span></p>
-                </div>
+                    <p>Price: <span>{this.state.currentPrice}</span> USDT</p>
+                    <p>Buy orders: <span>{this.state.currentValue}</span></p>
+                </div>`
                 <svg
                     width={this.props.width}
                     height={this.props.height}
